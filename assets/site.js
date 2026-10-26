@@ -88,7 +88,7 @@ if ('IntersectionObserver' in window) {
   function open(){ lastFocus = document.activeElement; inp.value = ''; sel = 0; render(); cmd.classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(function(){ inp.focus(); }, 30); }
   function close(){ cmd.classList.remove('open'); document.body.style.overflow = ''; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
   function run(n){ var it = items[n]; if (!it) return; close(); if (it.x) window.open(it.u, '_blank', 'noopener'); else location.href = it.u; }
-  $$('[data-cmd]').forEach(function(b){ b.addEventListener('click', open); });
+  $$('[data-cmd]').forEach(function(b){ b.addEventListener('click', function(){ var fromMenu = !!b.closest('#mnav'); if (fromMenu) closeMenu(); open(); if (fromMenu) lastFocus = burger; }); });
   cmd.addEventListener('click', function(e){ if (e.target === cmd) close(); });
   inp.addEventListener('input', function(){ sel = 0; render(); });
   addEventListener('keydown', function(e){
@@ -126,24 +126,77 @@ if ('IntersectionObserver' in window) {
   new IntersectionObserver(function(en){ vis = en[0].isIntersecting; clearTimeout(timer); if (vis) timer = setTimeout(tick, 500); }, { threshold: .35 }).observe(box);
 })();
 
-/* ---------- form ---------- */
+/* ---------- scroll hint (home) ---------- */
+(function(){
+  var a = $('.scrolldn'); if (!a) return;
+  function hide(){ a.classList.add('gone'); removeEventListener('scroll', onScroll); }
+  function onScroll(){ if (scrollY > 24) hide(); }
+  if (scrollY > 24) { hide(); return; }
+  /* only show while there is free room under the hero text, so it never covers a button */
+  var txt = $('.hero-home .txt');
+  function fit(){ if (txt) a.classList.toggle('nospace', innerHeight - txt.getBoundingClientRect().bottom < 72); }
+  fit(); addEventListener('resize', fit);
+  addEventListener('scroll', onScroll, { passive:true });
+  a.addEventListener('click', function(e){ var t = $(a.getAttribute('href')); if (!t) return; e.preventDefault(); t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block:'start' }); });
+})();
+
+/* ---------- form (Web3Forms, no cookies) ---------- */
 (function(){
   var form = $('#cform'); if (!form) return;
-  var btn = $('#sbtn'), msg = $('#fmsg'), F = I.form || {};
+  form.noValidate = true; /* native validation stays on when JS is missing */
+  var F = I.form || {}, btn = $('#sbtn'), msg = $('#fmsg'), label0 = btn.textContent, locked = false, timer = 0;
+  var el = function(id){ return document.getElementById(id); };
+  var RULES = {
+    'f-name': [function(v){ return v.length > 1; }, 'e_name'],
+    'f-mail': [function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }, 'e_mail'],
+    'f-svc': [function(v){ return !!v; }, 'e_svc'],
+    'f-tel': [function(v){ return !v || (/^[0-9+\s().\/-]{5,25}$/.test(v) && v.replace(/\D/g, '').length >= 5); }, 'e_tel'],
+    'f-msg': [function(v){ return v.length > 1; }, 'e_msg'],
+    'f-ok': [function(v, c){ return c.checked; }, 'e_ok']
+  };
+  var q = new URLSearchParams(location.search).get('s');
+  if (q) { var o = form.querySelector('option[data-k="' + q.replace(/[^\w-]/g, '') + '"]'); if (o) o.selected = true; }
   function show(t, s){ msg.className = 'fmsg ' + t; msg.textContent = s; }
-  var q = new URLSearchParams(location.search).get('s'); if (q) { var o = form.querySelector('option[value="' + q + '"]'); if (o) o.selected = true; }
+  function check(id, quiet){
+    var inp = el(id), r = RULES[id], ok = r[0](inp.value.trim(), inp), err = el('e-' + id.slice(2)), box = inp.closest(id === 'f-ok' ? '.consent' : '.cf-g'), base = inp.getAttribute('data-desc');
+    box.classList.toggle('bad', !ok);
+    err.textContent = ok ? '' : (F[r[1]] || '');
+    if (ok) { inp.removeAttribute('aria-invalid'); if (base) inp.setAttribute('aria-describedby', base); else inp.removeAttribute('aria-describedby'); }
+    else { inp.setAttribute('aria-invalid', 'true'); inp.setAttribute('aria-describedby', err.id + (base ? ' ' + base : '')); }
+    return ok;
+  }
+  function validate(){ var first = null; Object.keys(RULES).forEach(function(id){ if (!check(id) && !first) first = el(id); }); return first; }
+  function recheck(e){ var id = e.target.id; if (RULES[id] && e.target.closest('.bad')) check(id); }
+  form.addEventListener('input', recheck); form.addEventListener('change', recheck);
+  function payload(){
+    var v = function(id){ return el(id).value.trim(); }, h = function(n){ return form.elements[n].value; };
+    var mail = v('f-mail'), p = v('f-tel'), cc = el('f-cc').value;
+    var d = { access_key: h('access_key'), subject: h('subject'), from_name: h('from_name'), replyto: mail, Name: v('f-name'), 'E-Mail': mail };
+    if (v('f-co')) d.Firma = v('f-co');
+    d.Leistung = el('f-svc').value;
+    if (p) d.Telefon = (!cc || /^(\+|00)/.test(p)) ? p : cc + ' ' + p;
+    d.Nachricht = v('f-msg'); d.Einwilligung = 'Ja'; d.Sprache = h('Sprache'); d.Seite = location.href.split('#')[0];
+    return d;
+  }
+  function restore(){ locked = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('aria-busy'); btn.removeAttribute('data-state'); btn.textContent = label0; }
+  function done(){
+    form.reset(); btn.removeAttribute('aria-busy'); btn.setAttribute('data-state', 'sent'); btn.textContent = F.sent;
+    show('ok', F.ok); msg.setAttribute('tabindex', '-1'); msg.focus({ preventScroll: true }); msg.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    clearTimeout(timer); timer = setTimeout(restore, 6000);
+  }
+  function fail(){ restore(); show('err', F.err); }
   form.addEventListener('submit', function(e){
-    e.preventDefault();
-    var d = { name: form.name.value.trim(), email: form.email.value.trim(), company: form.company.value.trim(), service: form.service.value, message: form.message.value.trim() };
-    if (!d.name || !d.email || !d.service || !d.message || !form.consent.checked || !form.email.checkValidity()) { show('err', F.req); return; }
-    if (form._honey.value) return;
-    btn.disabled = true; btn.textContent = F.sending; msg.className = 'fmsg';
-    d._subject = 'Neue Anfrage — Prossimo Business Solutions (' + document.documentElement.lang.toUpperCase() + ')'; d._template = 'table'; d._captcha = 'false'; d._replyto = d.email;
-    fetch('https://formsubmit.co/ajax/dellaportadario@gmail.com', { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' }, body: JSON.stringify(d) })
-      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok || j.success === 'false' || j.success === false) throw new Error('x'); }); })
-      .then(function(){ show('ok', F.ok); form.reset(); })
-      .catch(function(){ show('err', F.err); })
-      .then(function(){ btn.disabled = false; btn.textContent = F.send; });
+    e.preventDefault(); if (locked) return;
+    var bad = validate();
+    if (bad) { show('err', F.req); bad.focus(); return; }
+    msg.className = 'fmsg'; msg.textContent = '';
+    locked = true; btn.setAttribute('aria-disabled', 'true'); btn.setAttribute('aria-busy', 'true'); btn.textContent = F.sending;
+    if (el('f-bot').checked) { done(); return; } /* honeypot ticked: look successful, send nothing */
+    var ctl = window.AbortController ? new AbortController() : null, to = setTimeout(function(){ if (ctl) ctl.abort(); }, 20000);
+    fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload()), signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok || !j.success) throw new Error('send'); }); })
+      .then(done, fail)
+      .then(function(){ clearTimeout(to); });
   });
 })();
 
