@@ -181,7 +181,8 @@ if ('IntersectionObserver' in window) {
   function restore(){ locked = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('aria-busy'); btn.removeAttribute('data-state'); btn.textContent = label0; }
   function done(){
     form.reset(); btn.removeAttribute('aria-busy'); btn.setAttribute('data-state', 'sent'); btn.textContent = F.sent;
-    show('ok', F.ok); msg.setAttribute('tabindex', '-1'); msg.focus({ preventScroll: true }); msg.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    show('ok', F.ok); if (F.spam) { var n = document.createElement('small'); n.textContent = F.spam; msg.appendChild(n); }
+    msg.setAttribute('tabindex', '-1'); msg.focus({ preventScroll: true }); msg.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     clearTimeout(timer); timer = setTimeout(restore, 6000);
   }
   function fail(){ restore(); show('err', F.err); }

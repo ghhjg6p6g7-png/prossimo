@@ -578,6 +578,8 @@ html{-webkit-tap-highlight-color:rgba(94,92,230,.14)}
 .send[aria-disabled=true]:not([data-state=sent]){opacity:.7;cursor:wait}
 .send[data-state=sent]{cursor:default}
 .fmsg:focus{outline:none}
+.fmsg small{display:block;margin-top:4px;font-size:13px;opacity:.8}
+.bookcard .bk-n{margin:14px 0 0;font-size:13px;color:var(--t3d)}
 .thanks .ic{width:56px;height:56px;border-radius:50%;margin:0 auto 22px;background:rgba(48,209,88,.16);color:#30d158}
 .thanks .ic svg{width:28px;height:28px}
 
