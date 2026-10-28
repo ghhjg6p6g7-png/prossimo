@@ -1,4 +1,4 @@
-/* Prossimo Business Solutions — site.js */
+/* Prossimo Business Solutions, site.js */
 (function(){
 'use strict';
 var I = {};
@@ -149,9 +149,21 @@ if ('IntersectionObserver' in window) {
     'f-mail': [function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }, 'e_mail'],
     'f-svc': [function(v){ return !!v; }, 'e_svc'],
     'f-tel': [function(v){ return !v || (/^[0-9+\s().\/-]{5,25}$/.test(v) && v.replace(/\D/g, '').length >= 5); }, 'e_tel'],
+    'f-cc2': [function(v){ return !otherCC() || !el('f-tel').value.trim() || /^\+\d{1,4}$/.test(v.replace(/\s/g, '')); }, 'e_cc2'],
     'f-msg': [function(v){ return v.length > 1; }, 'e_msg'],
     'f-ok': [function(v, c){ return c.checked; }, 'e_ok']
   };
+  /* free-text dialling code, only shown when "Other" (empty value) is selected */
+  var cc = el('f-cc'), cc2 = el('f-cc2'), ccBox = el('g-cc2');
+  function otherCC(){ return !cc.value; }
+  function syncCC(){
+    var on = otherCC(); ccBox.hidden = !on;
+    if (!on) { cc2.value = ''; ccBox.classList.remove('bad'); cc2.removeAttribute('aria-invalid'); el('e-cc2').textContent = ''; }
+  }
+  cc.addEventListener('change', function(){ syncCC(); if (otherCC()) cc2.focus(); });
+  form.addEventListener('reset', function(){ setTimeout(syncCC, 0); });
+  el('f-tel').addEventListener('input', function(){ if (!ccBox.hidden && ccBox.classList.contains('bad')) check('f-cc2'); });
+  syncCC();
   var q = new URLSearchParams(location.search).get('s');
   if (q) { var o = form.querySelector('option[data-k="' + q.replace(/[^\w-]/g, '') + '"]'); if (o) o.selected = true; }
   function show(t, s){ msg.className = 'fmsg ' + t; msg.textContent = s; }
@@ -168,11 +180,11 @@ if ('IntersectionObserver' in window) {
   form.addEventListener('input', recheck); form.addEventListener('change', recheck);
   function payload(){
     var v = function(id){ return el(id).value.trim(); }, h = function(n){ return form.elements[n].value; };
-    var mail = v('f-mail'), p = v('f-tel'), cc = el('f-cc').value;
+    var mail = v('f-mail'), p = v('f-tel'), code = otherCC() ? v('f-cc2').replace(/\s/g, '') : cc.value;
     var d = { access_key: h('access_key'), subject: h('subject'), from_name: h('from_name'), replyto: mail, Name: v('f-name'), 'E-Mail': mail };
     if (v('f-co')) d.Firma = v('f-co');
     d.Leistung = el('f-svc').value;
-    if (p) d.Telefon = (!cc || /^(\+|00)/.test(p)) ? p : cc + ' ' + p;
+    if (p) { d.Telefon = (!code || /^(\+|00)/.test(p)) ? p : code + ' ' + p; if (code) d.Vorwahl = code; }
     d.Nachricht = v('f-msg'); d.Einwilligung = 'Ja'; d.Sprache = h('Sprache'); d.Seite = location.href.split('#')[0];
     return d;
   }
