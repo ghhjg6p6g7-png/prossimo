@@ -418,5 +418,5 @@ $$('[data-anim]').forEach(function(el){
 });
 $$('pre[data-type]').forEach(typeCode);
 
-try { console.log('%cProssimo Business Solutions', 'font:600 14px -apple-system,sans-serif;color:#9a98ff', '\n→ dellaportadario@gmail.com'); } catch(e){}
+try { console.log('%cProssimo Business Solutions', 'font:600 14px -apple-system,sans-serif;color:#9a98ff', '\n→ dellaportadario@prossimo-solutions.com'); } catch(e){}
 })();
