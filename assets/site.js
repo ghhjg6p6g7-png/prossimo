@@ -69,8 +69,6 @@ if ('IntersectionObserver' in window) {
 (function(){
   var cmd = $('#cmd'); if (!cmd) return;
   var inp = $('#cmdIn'), list = $('#cmdList'), sel = 0, items = [];
-  var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-  var key = $('#cmdKey'); if (key) key.textContent = isMac ? '⌘ K' : 'Ctrl K';
   function render(){
     var q = inp.value.trim().toLowerCase();
     items = (I.cmd || []).filter(function(i){ return !q || i.l.toLowerCase().indexOf(q) > -1; });
