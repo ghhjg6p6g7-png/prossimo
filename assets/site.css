@@ -82,6 +82,7 @@ h1,h2,h3{font-weight:600;letter-spacing:-.03em}
 .nav-r{display:flex;align-items:center;gap:10px}
 .cmdbtn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid var(--line-d);border-radius:8px;padding:4px 9px;font-family:var(--mono);font-size:11px;color:var(--t2d);cursor:pointer}
 .cmdbtn:hover{background:rgba(255,255,255,.16);color:#fff}
+.cmdbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6}
 .langsel{position:relative}
 .langsel>button{background:none;border:0;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);padding:8px 8px;border-radius:8px;display:flex;align-items:center;gap:6px}
 .langsel>button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6}
